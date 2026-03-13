@@ -1,0 +1,45 @@
+name: Verify Human Identity
+
+on:
+  push:
+    branches:
+      - develop   # workflow jalan otomatis saat commit di branch develop
+  workflow_dispatch:  # tetap bisa dijalankan manual
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: "--unhandled-rejections=strict"  # biar Node.js stop kalau ada error
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "24"   # update Node.js ke versi 24
+
+      - name: Install ClawHub
+        run: npm install -g clawhub
+
+      - name: Install Verified Agent Identity
+        run: clawhub install verified-agent-identity
+
+      - name: Install dependencies
+        run: |
+          cd scripts
+          npm install
+
+      - name: Create Ethereum Identity
+        run: node scripts/createNewEthereumIdentity.js
+
+      - name: Link Human to Agent
+        run: |
+          echo "Starting verification..."
+          set -e  # stop job kalau ada error
+          node scripts/manualLinkHumanToAgent.js --challenge '{"name":"ronscar","description":"ronscar AI Agent"}' || {
+            echo "::error ::Verification failed. Check Billions Network circuit or input data."
+            exit 1
+          }
